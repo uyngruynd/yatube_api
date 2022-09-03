@@ -1,4 +1,4 @@
-from rest_framework import filters, permissions, viewsets
+from rest_framework import filters, mixins, permissions, viewsets
 from django.shortcuts import get_object_or_404
 from rest_framework.pagination import LimitOffsetPagination
 
@@ -14,11 +14,11 @@ class PostViewSet(viewsets.ModelViewSet):
     serializer_class = PostSerializer
 
     permission_classes = (permissions.IsAuthenticatedOrReadOnly,
-                          IsAuthorOrReadOnly, )
+                          IsAuthorOrReadOnly,)
     pagination_class = LimitOffsetPagination
-    filter_backends = (filters.OrderingFilter, )
-    ordering_fields = ('id', 'text', 'pub_date', )
-    ordering = ('id', )
+    filter_backends = (filters.OrderingFilter,)
+    ordering_fields = ('id', 'text', 'pub_date',)
+    ordering = ('id',)
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
@@ -34,7 +34,7 @@ class CommentViewSet(viewsets.ModelViewSet):
     """Описание вьюсета для работы с моделью Comment"""
     serializer_class = CommentSerializer
     permission_classes = (permissions.IsAuthenticatedOrReadOnly,
-                          IsAuthorOrReadOnly, )
+                          IsAuthorOrReadOnly,)
 
     def get_queryset(self):
         post = get_object_or_404(Post, pk=self.kwargs.get("post_id"))
@@ -46,16 +46,16 @@ class CommentViewSet(viewsets.ModelViewSet):
         serializer.save(author=self.request.user, post=post)
 
 
-class FollowViewSet(viewsets.ModelViewSet):
+class FollowViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
+                    viewsets.GenericViewSet):
     """Описание вьюсета для работы с моделью Follow."""
     serializer_class = FollowSerializer
-    permission_classes = (permissions.IsAuthenticated, )
-    filter_backends = (filters.SearchFilter, )
-    search_fields = ('following__username', )
+    permission_classes = (permissions.IsAuthenticated,)
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('following__username',)
 
     def get_queryset(self):
-        new_queryset = self.request.user.follower.all()
-        return new_queryset
+        return self.request.user.follower.all()
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
